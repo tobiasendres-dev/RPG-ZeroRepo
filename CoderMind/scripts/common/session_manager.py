@@ -453,6 +453,59 @@ class CopilotSessionManager(SessionManager):
 
 
 # ============================================================================
+# OpenCode CLI manager
+# ============================================================================
+
+class OpenCodeSessionManager(SessionManager):
+    """Delivers the prompt to ``opencode run`` via stdin temp file.
+
+    ``opencode run`` reads its prompt from stdin when no positional
+    message is given. We reuse the Claude temp-file mechanism minus the
+    claude-specific CLI flags.
+    """
+
+    def __init__(self, project_dir, trace_filename_builder=None, logger=None):
+        super().__init__(project_dir=project_dir,
+                         trace_filename_builder=trace_filename_builder,
+                         logger=logger)
+        self._tmp_prompt_path = None
+        self._tmp_prompt_fh = None
+
+    def before(self, ctx: TraceContext, prompt: str) -> None:
+        self._cleanup_tmp_prompt()
+        fd, tmp_path = tempfile.mkstemp(suffix=".txt", prefix="llm_prompt_")
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as f:
+                f.write(prompt)
+            self._tmp_prompt_path = tmp_path
+            self._tmp_prompt_fh = open(tmp_path, "r", encoding="utf-8")
+            ctx.stdin = self._tmp_prompt_fh
+        except Exception:
+            try:
+                os.unlink(tmp_path)
+            except OSError:
+                pass
+
+    def after(self, purpose):
+        self._cleanup_tmp_prompt()
+        return None
+
+    def _cleanup_tmp_prompt(self):
+        if self._tmp_prompt_fh is not None:
+            try:
+                self._tmp_prompt_fh.close()
+            except Exception:
+                pass
+            self._tmp_prompt_fh = None
+        if self._tmp_prompt_path is not None:
+            try:
+                os.unlink(self._tmp_prompt_path)
+            except OSError:
+                pass
+            self._tmp_prompt_path = None
+
+
+# ============================================================================
 # Factory
 # ============================================================================
 
@@ -460,6 +513,7 @@ class CopilotSessionManager(SessionManager):
 _MANAGER_REGISTRY: Dict[str, type] = {
     "claude": ClaudeSessionManager,
     "copilot": CopilotSessionManager,
+    "opencode": OpenCodeSessionManager,
 }
 
 

@@ -281,12 +281,12 @@ AGENT_CONFIG = {
     #     "install_url": "https://github.com/QwenLM/qwen-code",
     #     "requires_cli": True,
     # },
-    # "opencode": {
-    #     "name": "OpenCode",
-    #     "folder": ".opencode/",
-    #     "install_url": "https://opencode.ai",
-    #     "requires_cli": True,
-    # },
+    "opencode": {
+        "name": "OpenCode",
+        "folder": ".opencode/",
+        "install_url": "https://opencode.ai",
+        "requires_cli": True,
+    },
     # "codex": {
     #     "name": "Codex CLI",
     #     "folder": ".codex/",
